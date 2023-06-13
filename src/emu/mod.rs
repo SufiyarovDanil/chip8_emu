@@ -1,13 +1,18 @@
 use std::io::Read;
 use std::fs::File;
 
+mod window;
 mod instruction;
 mod font;
 
 use instruction::Instruction;
 
 
+const WIDTH: u8 = 64;
+const HEIGHT: u8 = 32;
+
 #[allow(dead_code)]
+#[derive(PartialEq)]
 enum State {
     Quit,
     Running,
@@ -19,6 +24,7 @@ enum State {
 pub struct Machine {
     state: State,
     ram: [u8; 4096],
+    window: window::Window,
     display: [bool; 2048],      // emulate original CHIP-8 resolution pixels
     stack: [u16; 12],           // subroutine stack
     stack_ptr: usize,           // subroutine stack pointer
@@ -39,6 +45,7 @@ impl Machine {
         Self {
             state: State::Paused,
             ram: [0; 0x1000],
+            window: window::Window::new(String::from("CHIP-8 EMU"), 600, 300),
             display: [false; 2048],
             stack: [0; 12],
             stack_ptr: 0,
@@ -63,26 +70,15 @@ impl Machine {
         // TODO: load rom
         let mut rom_file: File = File::open(rom_name).expect("Failed to open rom file!");
 
-        // let rom_size: usize = rom_file
-        //     .read(&mut self.ram[entry_point_usize..])
-        //     .unwrap();
-
-        let mut content: Vec<u8> = Vec::new();
-
-
         let rom_size: usize = rom_file
-            .read_to_end(&mut content)
-            .expect("Failed to read rom file!");
-
-        println!("{}", content.len());
-
-        self.ram[entry_point_usize..entry_point_usize + content.len()].copy_from_slice(&content);
+            .read(&mut self.ram[entry_point_usize..])
+            .unwrap();
 
         let max_size: usize = self.ram.len() - entry_point_usize;
 
         if rom_size > max_size {
             panic!("What the fuck?! Why does this rom filesize is bigger than RAM!??\n
-                    Are you trying to load GTA V on gameboy emulator or what?")
+                    Are you trying to load GTA V on chip-8 emulator or what?")
         }
 
         self.state = State::Running;
@@ -116,7 +112,13 @@ impl Machine {
                     //  so that next opcode will be gotten from that address
                     self.stack_ptr -= 1;
                     self.pc = self.stack[self.stack_ptr];
+                } else {
+                    println!("unimplemented opcode 0x00");
                 }
+            }
+            0x01 => {
+                println!("jump to addres nnn ({:#06x})", self.instruction.nnn);
+                self.pc = self.instruction.nnn;
             }
             0x02 => {
                 println!("return to subroutine stack");
@@ -127,11 +129,75 @@ impl Machine {
                 self.stack_ptr += 1;
                 self.pc = self.instruction.nnn;
             }
+            0x06 => {
+                println!("set v[{}] to nn ({:#04x})", self.instruction.x, self.instruction.nn);
+                self.v[self.instruction.x as usize] = self.instruction.nn;
+            }
+            0x07 => {
+                println!("set v[{}] += nn ({:#04x})", self.instruction.x, self.instruction.nn);
+                self.v[self.instruction.x as usize] += self.instruction.nn;
+            }
             0x0A => {
                 println!("set i to nnn");
                 self.i = self.instruction.nnn;
             }
+            0x0D => {
+                println!("draw a N {} height srite at coords v{} ({:#04x}), v{} ({:#04x}) from mem loc i {:#06x}",
+                    self.instruction.n,
+                    self.instruction.x,
+                    self.v[self.instruction.x as usize],
+                    self.instruction.y,
+                    self.v[self.instruction.y as usize],
+                    self.i);
+
+                let mut x_coord: u8 = self.v[self.instruction.x as usize] % WIDTH;
+                let mut y_coord: u8 = self.v[self.instruction.y as usize] % HEIGHT;
+                let origin_x_coord: u8 = x_coord;
+
+                self.v[0xF] = 0;    // initialize carry flag to 0
+
+                for i in 0..self.instruction.n {
+                    let sprite_data: u8 = self.ram[(self.i + i as u16) as usize];
+                    x_coord = origin_x_coord;
+
+                    for j in (0..8).rev() {
+                        let pixel: &mut bool = &mut self.display[(y_coord as u16 * WIDTH as u16 + x_coord as u16) as usize];
+                        let sprite_bit: bool = (sprite_data & (1 << j)) != 0;
+
+                        if sprite_bit && *pixel {
+                            self.v[0xF] = 1;
+                        }
+
+                        *pixel ^= sprite_bit;
+                        x_coord += 1;
+
+                        if x_coord >= WIDTH {
+                            break
+                        }
+                    }
+
+                    y_coord += 1;
+
+                    if y_coord >= HEIGHT {
+                        break
+                    }
+                }
+
+                
+            }
             _ => { println!("unimplemented opcode"); }
         }
+    }
+
+    pub fn tick(&mut self) {
+        // TODO: handle input
+        self.exec_instruction();
+        self.window.update_screen(&self.display);
+
+        std::thread::sleep(std::time::Duration::from_millis(16));
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.state == State::Running
     }
 }
