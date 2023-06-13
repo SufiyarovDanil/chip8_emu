@@ -27,9 +27,9 @@ impl Instruction {
 
         let nnn: u16 = opcode & 0x0FFF;
         let nn: u8 = opcode as u8 & 0x0FF;
-        let n: u8 = opcode as u8 & 0x0F;
-        let x: u8 = (opcode >> 8) as u8 & 0x0F;
-        let y: u8 = (opcode >> 4) as u8 & 0x0F;
+        let n: u8 = (opcode & 0x0F) as u8;
+        let x: u8 = ((opcode >> 8)  & 0x0F) as u8;
+        let y: u8 = ((opcode >> 4) & 0x0F) as u8;
 
         Self {
             opcode,

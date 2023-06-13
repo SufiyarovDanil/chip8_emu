@@ -61,12 +61,22 @@ impl Machine {
         self.ram[0..font::FONT_SET.len()].copy_from_slice(&font::FONT_SET);
 
         // TODO: load rom
-        let mut rom_file: File = File::open(rom_name)
-            .expect("Failed to open rom file!");
+        let mut rom_file: File = File::open(rom_name).expect("Failed to open rom file!");
+
+        // let rom_size: usize = rom_file
+        //     .read(&mut self.ram[entry_point_usize..])
+        //     .unwrap();
+
+        let mut content: Vec<u8> = Vec::new();
+
 
         let rom_size: usize = rom_file
-            .read(&mut self.ram[entry_point_usize..])
-            .unwrap();
+            .read_to_end(&mut content)
+            .expect("Failed to read rom file!");
+
+        println!("{}", content.len());
+
+        self.ram[entry_point_usize..entry_point_usize + content.len()].copy_from_slice(&content);
 
         let max_size: usize = self.ram.len() - entry_point_usize;
 
@@ -82,15 +92,15 @@ impl Machine {
         Ok(self)
     }
 
-    pub fn emulate_instruction(&mut self) {
+    pub fn exec_instruction(&mut self) {
         self.instruction = Instruction::from(
             self.ram[self.pc as usize],
             self.ram[self.pc as usize + 1]
         );
 
-        let category: u16 = (self.instruction.opcode >> 12) & 0x0FFF;
-        
-        print!("Address: {:#04x}, Opcode: {:#04x}, Desc: ", self.pc, self.instruction.opcode);
+        let category: u16 = (self.instruction.opcode >> 12) & 0x0F;
+
+        print!("Address: {:#06x}, Opcode: {:#06x}, Desc: ", self.pc, self.instruction.opcode);
 
         self.pc += 2;
 

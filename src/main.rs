@@ -29,7 +29,7 @@ fn main() {
             _ => {}
         }
 
-        emulator.emulate_instruction();
+        emulator.exec_instruction();
         std::thread::sleep(std::time::Duration::from_millis(100));
     });
 }
