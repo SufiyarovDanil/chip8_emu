@@ -2,8 +2,10 @@ use std::io::Read;
 use std::fs::File;
 
 mod window;
+mod cpu;
+mod ram;
 mod instruction;
-mod font;
+//mod font;
 
 use instruction::Instruction;
 
