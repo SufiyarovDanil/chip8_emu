@@ -3,5 +3,12 @@ name = "chip-8-emu"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+opt-level = 'z'     # Optimize for size
+codegen-units = 1   # Reduce number of codegen units to increase optimizations
+strip = true        # Strip symbols from binary*
+
 [dependencies]
+native-dialog = "0.6.4"
 piston_window = "0.128.0"
+rand = "0.8.5"

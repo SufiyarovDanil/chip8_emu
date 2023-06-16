@@ -1,15 +1,21 @@
+use native_dialog::FileDialog;
+
 mod emu;
 
 
 fn main() {
-    let mut emulator: emu::Machine = emu::Machine::new();
-    let rom_name: String = String::from("D:/Projects/emus/chip-8-emu/res/IBM Logo.ch8");
-
-    emulator
-        .init(&rom_name)
+    let result = FileDialog::new()
+        .set_location("~")
+        .add_filter("CHIP-8 ROMS", &["ch8"])
+        .show_open_single_file()
+        .unwrap()
         .unwrap();
 
-    while emulator.is_running() {
-        emulator.tick();
-    }
+    let rom_path: String = String::from(result.to_str().unwrap());
+
+    let mut emulator: emu::Machine = emu::Machine::new();
+
+    emulator
+        .init(rom_path)
+        .run();
 }

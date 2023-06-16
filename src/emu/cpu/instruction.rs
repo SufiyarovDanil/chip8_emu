@@ -3,8 +3,8 @@ pub struct Instruction {
     pub nnn: u16,       // 12 bit addr constant
     pub nn: u8,         // 8 bit constant
     pub n: u8,          // 4 bit constant
-    pub x: u8,          // 4 bit register identifier
-    pub y: u8           // 4 bit register identifier
+    pub x: usize,       // 4 bit register identifier
+    pub y: usize        // 4 bit register identifier
 }
 
 
@@ -28,8 +28,8 @@ impl Instruction {
         let nnn: u16 = opcode & 0x0FFF;
         let nn: u8 = opcode as u8 & 0x0FF;
         let n: u8 = (opcode & 0x0F) as u8;
-        let x: u8 = ((opcode >> 8)  & 0x0F) as u8;
-        let y: u8 = ((opcode >> 4) & 0x0F) as u8;
+        let x: usize = ((opcode >> 8)  & 0x0F) as usize;
+        let y: usize = ((opcode >> 4) & 0x0F) as usize;
 
         Self {
             opcode,
