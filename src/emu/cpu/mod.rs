@@ -88,8 +88,6 @@ impl CPU {
                 (*self.ram_handler).read(self.pc as usize + 1)
             );
 
-            //println!("{:#06x}", self.pc);
-
             self.pc += 2;
     
             let category: u16 = (self.current_inst.opcode >> 12) & 0x0F;
@@ -101,7 +99,7 @@ impl CPU {
             if let Some(e) = exec {
                 e(self);
             } else {
-                println!("----------unimplemented instruction----------");
+                panic!("unimplemented code");
             }
         }
     }
@@ -130,17 +128,11 @@ impl CPU {
     }
 
     fn x00(&mut self) {
-        //println!("x00");
-
         match self.current_inst.nn {
             0xE0 => unsafe {
-                //println!("clear screen");
-
                 (*self.display_handler).clear();
             }
             0xEE => {
-                //println!("return from subroutine");
-
                 self.stack_ptr -= 1;
                 self.pc = self.stack[self.stack_ptr];
             }
@@ -149,40 +141,28 @@ impl CPU {
     }
 
     fn x01(&mut self) {
-        //println!("jump to addres nnn ({:#06x})", self.current_inst.nnn);
-
         self.pc = self.current_inst.nnn;
     }
 
     fn x02(&mut self) {
-        //println!("return to subroutine stack");
-        // store current addres to return to subroutine stack
-        //  and set program counter to subroutine address so that the next opcode
-        //  is gotten from there
         self.stack[self.stack_ptr] = self.pc;
         self.stack_ptr += 1;
         self.pc = self.current_inst.nnn;
     }
 
     fn x03(&mut self) {
-        //println!("x03");
-
         if self.v[self.current_inst.x] == self.current_inst.nn {
             self.pc += 2;
         }
     }
 
     fn x04(&mut self) {
-        //println!("x04");
-
         if self.v[self.current_inst.x] != self.current_inst.nn {
             self.pc += 2;
         }
     }
 
     fn x05(&mut self) {
-        //println!("x05");
-
         if self.current_inst.n != 0 {
             println!("wrong opcode");
             return;
@@ -194,21 +174,15 @@ impl CPU {
     }
 
     fn x06(&mut self) {
-        //println!("set v[{}] to nn ({:#04x})", self.current_inst.x, self.current_inst.nn);
-
         self.v[self.current_inst.x] = self.current_inst.nn;
     }
 
     fn x07(&mut self) {
-        //println!("set v[{}] += nn ({:#04x})", self.current_inst.x, self.current_inst.nn);
-
         self.v[self.current_inst.x] = self.v[self.current_inst.x]
             .wrapping_add(self.current_inst.nn); //+= self.current_inst.nn;
     }
 
     fn x08(&mut self) {
-        //println!("x08");
-
         match self.current_inst.n {
             0x0 => {
                 self.v[self.current_inst.x] = self.v[self.current_inst.y];
@@ -261,45 +235,29 @@ impl CPU {
     }
 
     fn x09 (&mut self) {
-        //println!("x09");
-
         if self.v[self.current_inst.x] != self.v[self.current_inst.y] {
             self.pc += 2;
         }
     }
 
     fn x0a(&mut self) {
-        //println!("set i to nnn ({:#06x})", self.current_inst.nnn);
-
         self.i = self.current_inst.nnn;
     }
 
     fn x0b(&mut self) {
-        //println!("x0b");
-
         self.pc = self.v[0] as u16 + self.current_inst.nnn;
     }
 
     fn x0c(&mut self) {
-        //println!("x0c");
-
         self.v[self.current_inst.x] = rand::random::<u8>() & self.current_inst.nn;
     }
 
     fn x0d(&mut self) {
-        //println!("draw a N {} height srite at coords v{} ({:#04x}), v{} ({:#04x}) from mem loc i {:#06x}",
-        //    self.current_inst.n,
-        //    self.current_inst.x,
-        //    self.v[self.current_inst.x as usize],
-        //    self.current_inst.y,
-        //    self.v[self.current_inst.y as usize],
-        //    self.i);
-
         let mut x_coord: u8 = self.v[self.current_inst.x as usize] % display::WIDTH;
         let mut y_coord: u8 = self.v[self.current_inst.y as usize] % display::HEIGHT;
         let origin_x_coord: u8 = x_coord;
 
-        self.v[0xF] = 0;    // initialize carry flag to 0
+        self.v[0xF] = 0;
 
         for i in 0..self.current_inst.n {
             let sprite_data: u8 = unsafe{ (*self.ram_handler).read((self.i + i as u16) as usize) };
@@ -340,7 +298,6 @@ impl CPU {
     }
 
     fn x0e(&mut self) {
-        //println!("x0e");
         if self.keypad_handler.is_null() {
             return
         }
@@ -361,8 +318,6 @@ impl CPU {
     }
 
     fn x0f(&mut self) {
-        //println!("x0f");
-
         match self.current_inst.nn {
             0x0A => unsafe {
                 let mut any_key_pressed: bool = false;
